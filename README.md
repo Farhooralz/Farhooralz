@@ -10,7 +10,7 @@
 
 # ⌨️ Typing:
 <a href="https://monkeytype.com/profile/farhooralz">
-  <img src="https://raw.githubusercontent.com/Farhooralz/Farhooralz/monkeytype-readme/farhooralz-monkeytype-readme.svg" alt="My Monkeytype profile" />
+  <img src="https://raw.githubusercontent.com/Farhooralz/Farhooralz/monkeytype-readme/farhooralz-monkeytype-readme-lb-pb.svg" alt="My Monkeytype profile" />
 </a>
 
 # 📊 GitHub Stats:
