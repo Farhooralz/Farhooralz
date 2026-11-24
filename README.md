@@ -17,4 +17,4 @@
 [![](https://komarev.com/ghpvc/?username=Farhooralz&icon=0&color=0)](https://visitcount.itsvg.in)
 
 # ⌨️ Typing:
-![My Monkeytype profile](https://raw.githubusercontent.com/Farhooralz/Farhooralz/monkeytype-readme/farhooralz-monkeytype-readme-lb-pb.svg)
+![My Monkeytype profile](https://raw.githubusercontent.com/Farhooralz/Farhooralz/monkeytype-readme/farhooralz-monkeytype-readme-wide.svg)
