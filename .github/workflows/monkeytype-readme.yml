@@ -37,6 +37,29 @@ jobs:
           const fs = require("fs");
           const { getTheme, getBadge, getUserData } = require("./public/script/monkeytypeData");
           const { getSvg } = require("./public/script/generateSvg");
+          
+          function makeWide(svg) {
+            const fo = svg.indexOf("<foreignObject");
+            const head = svg.slice(0, fo);
+            const body = svg.slice(fo);
+            const marker = '<div xmlns="http://www.w3.org/1999/xhtml"';
+            const pos = []; let i = -1;
+            while ((i = body.indexOf(marker, i + 1)) !== -1) pos.push(i);
+            if (pos.length < 4) throw new Error("Unexpected SVG layout");
+            const strip = x => x.trim().replace(/^<div xmlns="http:\/\/www\.w3\.org\/1999\/xhtml"[^>]*>/, "<div>");
+            const hdr = strip(body.slice(pos[0], pos[1]));
+            const lb  = strip(body.slice(pos[1], pos[2]));
+            const pb  = strip(body.slice(pos[2], pos[3]));
+            const W = 1020, H = 420;
+            const newHead = head.replace(/viewBox="0 0 500 880" width="500" height="880"/,
+              `viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"`);
+            return newHead.trimEnd() + `<foreignObject x="0" y="0" width="${W}" height="${H}">` +
+              `<div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;gap:20px;width:${W}px;">` +
+              `<div style="width:500px;flex:none;">${hdr}${lb}</div>` +
+              `<div style="width:500px;flex:none;margin-top:-20px;">${pb}</div></div>` +
+              `</foreignObject></svg>`;
+          }
+          
           (async () => {
             await new Promise(r => setTimeout(r, 1000));
             const user = process.env.MT_USER;
@@ -45,17 +68,16 @@ jobs:
             if (!userData || !userData.name) throw new Error("Monkeytype profile not found or not public");
             let badge = null;
             const badges = userData.inventory && userData.inventory.badges;
-            if (badges && badges.length) {
-              badge = getBadge((badges.find(b => b.selected) || badges[0]).id);
-            }
-            const out = {
-              "": [false, false], "-lb": [true, false],
-              "-pb": [false, true], "-lb-pb": [true, true],
-            };
+            if (badges && badges.length) badge = getBadge((badges.find(b => b.selected) || badges[0]).id);
+          
+            const out = { "": [false, false], "-lb": [true, false], "-pb": [false, true], "-lb-pb": [true, true] };
             for (const [suffix, [lb, pb]] of Object.entries(out)) {
               const svg = await getSvg(userData, theme, badge, lb, pb);
               if (!svg.includes("<svg")) throw new Error("Bad SVG");
               fs.writeFileSync(`../public/${user}-monkeytype-readme${suffix}.svg`, svg);
+              if (suffix === "-lb-pb") {
+                fs.writeFileSync(`../public/${user}-monkeytype-readme-wide.svg`, makeWide(svg));
+              }
             }
           })().catch(e => { console.error(e); process.exit(1); });
           EOF
