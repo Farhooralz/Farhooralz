@@ -2,28 +2,70 @@ name: generate monkeytype readme svg
 
 on:
   schedule:
-    - cron: "0 */6 * * *"   # refresh every 6 hours
-  workflow_dispatch:         # lets you run it manually
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
 
 permissions:
-  contents: write            # needed so the action can push the SVG
+  contents: write
 
 jobs:
   download-svg:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout generator
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
         with:
-          node-version: "20.x"
+          repository: monkeytype-hub/monkeytype-readme
+          path: gen
 
-      - name: Generate Monkeytype Readme SVG
-        uses: monkeytype-hub/monkeytype-readme@v1.0.0
+      - uses: actions/setup-node@v4
         with:
-          username: farhooralz
-          themes: cyberspace          # your Monkeytype theme; spaces become _ (e.g. nord_light)
-          target-branch: monkeytype-readme
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          node-version: "22"
+
+      - name: Install dependencies
+        working-directory: gen
+        run: npm ci
+
+      - name: Generate SVGs
+        working-directory: gen
+        env:
+          MT_USER: farhooralz
+          MT_THEME: cyberspace   # change to your Monkeytype theme (spaces -> _)
+        run: |
+          mkdir -p ../public
+          cat > make.js <<'EOF'
+          const fs = require("fs");
+          const { getTheme, getBadge, getUserData } = require("./public/script/monkeytypeData");
+          const { getSvg } = require("./public/script/generateSvg");
+          (async () => {
+            await new Promise(r => setTimeout(r, 1000));
+            const user = process.env.MT_USER;
+            const theme = getTheme(process.env.MT_THEME);
+            const userData = await getUserData(user);
+            if (!userData || !userData.name) throw new Error("Monkeytype profile not found or not public");
+            let badge = null;
+            const badges = userData.inventory && userData.inventory.badges;
+            if (badges && badges.length) {
+              badge = getBadge((badges.find(b => b.selected) || badges[0]).id);
+            }
+            const out = {
+              "": [false, false], "-lb": [true, false],
+              "-pb": [false, true], "-lb-pb": [true, true],
+            };
+            for (const [suffix, [lb, pb]] of Object.entries(out)) {
+              const svg = await getSvg(userData, theme, badge, lb, pb);
+              if (!svg.includes("<svg")) throw new Error("Bad SVG");
+              fs.writeFileSync(`../public/${user}-monkeytype-readme${suffix}.svg`, svg);
+            }
+          })().catch(e => { console.error(e); process.exit(1); });
+          EOF
+          node make.js
+          ls -la ../public
+
+      - name: Push SVGs to monkeytype-readme branch
+        uses: crazy-max/ghaction-github-pages@v4
+        with:
+          target_branch: monkeytype-readme
+          build_dir: public
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
